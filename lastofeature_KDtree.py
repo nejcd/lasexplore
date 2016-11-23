@@ -67,8 +67,8 @@ for point, value in zip(coords, values):
     #    break
 
 
-np.savetxt(path + filename + '.csv', features, delimiter=",")
-np.save(path + filename + '.npy', features)
+#np.savetxt(path + filename + '.csv', features, delimiter=",")
+#np.save(path + filename + '.npy', features)
 
 time_delta_1 = datetime.datetime.now() - t1
 

@@ -31,7 +31,7 @@ from scipy import stats
 import scipy.misc
 
 t0 = datetime.datetime.now()
-path = 'E:\Dropbox\dev\Data/'
+path = 'S:\Dropbox\dev\Data/'
 filename = '01'
 
 las = laspy.file.File(path + filename + '.las', mode='r')
@@ -76,7 +76,7 @@ for point, value in zip(coords3d, values):
     scipy.misc.toimage(feature, cmin=0.0, cmax=255).save('feat_out\outfile{0}.jpg'.format(n))
 
     n += 1
-    if n > 100:
+    if n > 10:
         break
 
 
