@@ -36,7 +36,7 @@ t0 = datetime.datetime.now()
 
 #Read data and set parameters
 path = 's:/Dropbox/dev/Data/'
-filename = '29'
+filename = '01'
 las = laspy.file.File(path + filename + '.las', mode='r')
 coords3d = np.vstack((las.x, las.y, las.z)).transpose()
 values = np.vstack((las.classification, las.intensity)).transpose()
@@ -96,8 +96,8 @@ for point, value in zip(coords3d, values):
     #scipy.misc.toimage(feature, cmin=0.0, cmax=255).save('feat_out\outfile{0}.jpg'.format(n))
 
     n += 1
-    if n > 1000:
-       break
+    #if n > 1000:
+    #   break
 
 
 #hf.create_dataset('features', data=features)

@@ -73,11 +73,11 @@ for point, value in zip(coords3d, values):
     
     #df2 = pd.DataFrame(feature.reshape(-1,3))
     #df.append(df2)
-    scipy.misc.toimage(feature, cmin=0.0, cmax=255).save('feat_out\outfile{0}.jpg'.format(n))
+    #scipy.misc.toimage(feature, cmin=0.0, cmax=255).save('feat_out\outfile{0}.jpg'.format(n))
 
     n += 1
-    if n > 10:
-        break
+    #if n > 10:
+    #    break
 
 
 time_delta_1 = datetime.datetime.now() - t1

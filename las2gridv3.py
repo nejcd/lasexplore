@@ -199,7 +199,7 @@ else:
     features.append(f1)
     meta.append(m1)
 
-printFeatures(features)
+#printFeatures(features)
 
 #Timer stop
 time_delta_1 = datetime.datetime.now() - t1
