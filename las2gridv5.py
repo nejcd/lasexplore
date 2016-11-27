@@ -52,9 +52,9 @@ def clip(coordinats, extend):
 
     return coordinats
 
-def createGrid(points, extend, training, buffer=20, values=[]):
+def createGrid(points, extend, training, buffer=20,  values=[]):
     """Create grid and caluclate features
-    :param points: Array Vstack [x, y, z, intensity, classification, id] [m]
+    :param points: Array Vstack [x, y, z, classification] [m]
     :type points: float
     :param extend: Array [minX minY, maxX maxY]
     :type extend: float
@@ -69,6 +69,7 @@ def createGrid(points, extend, training, buffer=20, values=[]):
 
     if values:
         points[:, 2] = values
+
 
     features = []
     n = 0
@@ -110,23 +111,22 @@ def createGrid(points, extend, training, buffer=20, values=[]):
 
     for point in points:
 
-        centerx = len(gridX[gridX < point[0]])
-        centery = len(gridY[gridY < point[1]])
-
-        f1 = 255 * scipy.special.expit(mean[(centerx - buffer):(centerx + buffer),
-                                       (centery - buffer):(centery + buffer)] - point[2])
-        f2 = 255 * scipy.special.expit(minm[(centerx - buffer):(centerx + buffer),
-                                       (centery - buffer):(centery + buffer)] - point[2])
-        f3 = 255 * scipy.special.expit(maxm[(centerx - buffer):(centerx + buffer),
-                                       (centery - buffer):(centery + buffer)] - point[2])
-
-        feature = np.array([f1, f2, f3], dtype=np.uint8)
-
-        features.append(feature)
-
         n += 1
-        if n % 10000 == 0:
-            scipy.misc.toimage(feature, cmin=0.0, cmax=255).save('feat_out\outfile{0}.jpg'.format(n))
+        if n % 3 == 0:
+            centerx = len(gridX[gridX < point[0]])
+            centery = len(gridY[gridY < point[1]])
+
+            f1 = 255 * scipy.special.expit(mean[(centerx - buffer):(centerx + buffer),
+                                           (centery - buffer):(centery + buffer)] - point[2])
+            f2 = 255 * scipy.special.expit(minm[(centerx - buffer):(centerx + buffer),
+                                           (centery - buffer):(centery + buffer)] - point[2])
+            f3 = 255 * scipy.special.expit(maxm[(centerx - buffer):(centerx + buffer),
+                                           (centery - buffer):(centery + buffer)] - point[2])
+
+            feature = np.array([f1, f2, f3], dtype=np.uint8)
+            if training:
+                features.append((feature, int(point[3])))
+            #scipy.misc.toimage(feature, cmin=0.0, cmax=255).save('feat_out\outfile{0}.jpg'.format(n))
 
 
     return features
@@ -147,11 +147,11 @@ def printFeatures(features):
 t0 = datetime.datetime.now()
 
 #Read data and set parameters
-path = 's:/Dropbox/dev/Data/'
-filename = '46_all_class'
+path = 'e:/Dropbox/dev/Data/'
+filename = 'kelag_train_ground_nonground'
 las = laspy.file.File(path + filename + '.las', mode='r')
 pointsin = np.vstack((las.x, las.y, las.z, las.classification)).transpose()
-#hf = h5py.File(path + filename + '_data.h5', 'w')
+#hf = h5py.File(path + filename + '.h5', 'w')
 
 
 #Timer 2
@@ -165,11 +165,29 @@ extend = np.array([[las.header.min[0], las.header.min[1]],
                    [las.header.max[0], las.header.max[1]]])
 
 features = createGrid(pointsin, extend, True, buffer)
+time_delta_1 = datetime.datetime.now() - t1
+print ('For features it took {0}'.format(time_delta_1))
+t2 = datetime.datetime.now()
+
+np.save(path + filename + '.npy', features)
+time_delta_2 = datetime.datetime.now() - t2
+print ('Time to save npy {0}'.format(time_delta_2))
+
+
+t3 = datetime.datetime.now()
+
+
+np.savez_compressed(path + filename + '.npz', features)
+time_delta_3 = datetime.datetime.now() - t3
+print ('Time to save npz{0}'.format(time_delta_3))
+
+t3 = datetime.datetime.now()
+
+
 #printFeatures(features)
 
 #Timer stop
-time_delta_1 = datetime.datetime.now() - t1
-print ('For features it took {0}'.format(time_delta_1))
+
 
 #hf.create_dataset('features', data=features)
 #hf.create_dataset('labels', data=las.classification)
