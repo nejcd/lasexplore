@@ -29,6 +29,7 @@ import scipy.misc
 from scipy.spatial.kdtree import KDTree
 import h5py
 
+
 def clip(coordinats, extend):
     """Clip point to extend
     :param coordinats: Array Vstack [x, y] [m]
@@ -52,7 +53,7 @@ def clip(coordinats, extend):
 
     return coordinats
 
-def createGrid(points, extend, training, buffer=20,  values=[]):
+def create_featureset(points, extend, training, buffer=20,  values=[]):
     """Create grid and caluclate features
     :param points: Array Vstack [x, y, z, classification] [m]
     :type points: float
@@ -112,20 +113,24 @@ def createGrid(points, extend, training, buffer=20,  values=[]):
     for point in points:
 
         n += 1
-        if n % 3 == 0:
-            centerx = len(gridX[gridX < point[0]])
-            centery = len(gridY[gridY < point[1]])
+        
+        centerx = len(gridX[gridX < point[0]])
+        centery = len(gridY[gridY < point[1]])
 
-            f1 = 255 * scipy.special.expit(mean[(centerx - buffer):(centerx + buffer),
-                                           (centery - buffer):(centery + buffer)] - point[2])
-            f2 = 255 * scipy.special.expit(minm[(centerx - buffer):(centerx + buffer),
-                                           (centery - buffer):(centery + buffer)] - point[2])
-            f3 = 255 * scipy.special.expit(maxm[(centerx - buffer):(centerx + buffer),
-                                           (centery - buffer):(centery + buffer)] - point[2])
+        f1 = 255 * scipy.special.expit(mean[(centerx - buffer):(centerx + buffer),
+                                        (centery - buffer):(centery + buffer)] - point[2])
+        f2 = 255 * scipy.special.expit(minm[(centerx - buffer):(centerx + buffer),
+                                        (centery - buffer):(centery + buffer)] - point[2])
+        f3 = 255 * scipy.special.expit(maxm[(centerx - buffer):(centerx + buffer),
+                                        (centery - buffer):(centery + buffer)] - point[2])
 
-            feature = np.array([f1, f2, f3], dtype=np.uint8)
-            if training:
-                features.append((feature, int(point[3])))
+        feature = np.array([f1, f2, f3], dtype=np.uint8).reshape(40,40,3)
+        if training:
+            if int(point[3] != 2):
+                features.append((feature, [0, 1]))
+            elif int(point[3] == 2):
+                features.append((feature, [1, 0]))
+
             #scipy.misc.toimage(feature, cmin=0.0, cmax=255).save('feat_out\outfile{0}.jpg'.format(n))
 
 
@@ -136,60 +141,46 @@ def printFeatures(features):
     n = 0
     for feature in features:
         scipy.misc.toimage(feature, cmin=0.0, cmax=255).save('feat_out\outfile{0}.jpg'.format(n))
-        if n > 100:
+        if n > 10:
             break
+
+
+def save_npy(featureset):
+    np.save(path + filename + '.npy', featureset)
+
+
+
 
 ########################################################
 #            MAIN CODE                                 #
 ########################################################
+if __name__ == '__main__':
 
-#Timer 1
-t0 = datetime.datetime.now()
+    t0 = datetime.datetime.now()
+    #Read data and set parameters
+    path = '/media/nejc/Prostor/Dropbox/dev/Data/'
+    #path = 'e:/Dropbox/dev/Data/'
+    filename = '29'
+    las = laspy.file.File(path + filename + '.las', mode='r')
+    pointsin = np.vstack((las.x, las.y, las.z, las.classification)).transpose()
 
-#Read data and set parameters
-path = 'e:/Dropbox/dev/Data/'
-filename = 'kelag_train_ground_nonground'
-las = laspy.file.File(path + filename + '.las', mode='r')
-pointsin = np.vstack((las.x, las.y, las.z, las.classification)).transpose()
-#hf = h5py.File(path + filename + '.h5', 'w')
+    buffer = 20 #Size of offsets from point of interest and buffer around area
+    extend = np.array([[las.header.min[0], las.header.min[1]],
+                    [las.header.max[0], las.header.max[1]]])
 
+    #Timer 1
+    time_delta_0 = datetime.datetime.now() - t0
+    print ('Time read and tree {0}'.format(time_delta_0))
+    t1 = datetime.datetime.now()
+  
 
-#Timer 2
-time_delta_0 = datetime.datetime.now() - t0
-print ('Time read and tree {0}'.format(time_delta_0))
-t1 = datetime.datetime.now()
+    features = create_featureset(pointsin, extend, True, buffer)
+    #Timer 2
+    time_delta_1 = datetime.datetime.now() - t1
+    print ('For features it took {0}'.format(time_delta_1))
+    t2 = datetime.datetime.now()
 
-buffer = 20
-
-extend = np.array([[las.header.min[0], las.header.min[1]],
-                   [las.header.max[0], las.header.max[1]]])
-
-features = createGrid(pointsin, extend, True, buffer)
-time_delta_1 = datetime.datetime.now() - t1
-print ('For features it took {0}'.format(time_delta_1))
-t2 = datetime.datetime.now()
-
-np.save(path + filename + '.npy', features)
-time_delta_2 = datetime.datetime.now() - t2
-print ('Time to save npy {0}'.format(time_delta_2))
-
-
-t3 = datetime.datetime.now()
-
-
-np.savez_compressed(path + filename + '.npz', features)
-time_delta_3 = datetime.datetime.now() - t3
-print ('Time to save npz{0}'.format(time_delta_3))
-
-t3 = datetime.datetime.now()
-
-
-#printFeatures(features)
-
-#Timer stop
-
-
-#hf.create_dataset('features', data=features)
-#hf.create_dataset('labels', data=las.classification)
-
-
+    
+    time_delta_2 = datetime.datetime.now() - t2
+    save_npy(features)
+    print ('Time to save npy {0}'.format(time_delta_2))
