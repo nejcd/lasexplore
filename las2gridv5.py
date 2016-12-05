@@ -53,7 +53,7 @@ def clip(coordinats, extend):
 
     return coordinats
 
-def create_featureset(points, extend, training, buffer=20,  values=[]):
+def create_featureset(points, extend, training, img_size=32,  values=[]):
     """Create grid and caluclate features
     :param points: Array Vstack [x, y, z, classification] [m]
     :type points: float
@@ -67,6 +67,7 @@ def create_featureset(points, extend, training, buffer=20,  values=[]):
     :type training: float
     """
     tree = KDTree(points[:, 0:2])
+    buff = int(img_size*0.5)
 
     if values:
         points[:, 2] = values
@@ -75,10 +76,10 @@ def create_featureset(points, extend, training, buffer=20,  values=[]):
     features = []
     n = 0
 
-    minX = extend[0, 0] - buffer
-    minY = extend[0, 1] - buffer
-    maxX = extend[1, 0] + buffer
-    maxY = extend[1, 1] + buffer
+    minX = extend[0, 0] - buff
+    minY = extend[0, 1] - buff
+    maxX = extend[1, 0] + buff
+    maxY = extend[1, 1] + buff
 
     gridX = np.linspace(int(minX), int(maxX),
                         int(maxX - minX + 1))
@@ -117,14 +118,14 @@ def create_featureset(points, extend, training, buffer=20,  values=[]):
         centerx = len(gridX[gridX < point[0]])
         centery = len(gridY[gridY < point[1]])
 
-        f1 = 255 * scipy.special.expit(mean[(centerx - buffer):(centerx + buffer),
-                                        (centery - buffer):(centery + buffer)] - point[2])
-        f2 = 255 * scipy.special.expit(minm[(centerx - buffer):(centerx + buffer),
-                                        (centery - buffer):(centery + buffer)] - point[2])
-        f3 = 255 * scipy.special.expit(maxm[(centerx - buffer):(centerx + buffer),
-                                        (centery - buffer):(centery + buffer)] - point[2])
+        f1 = scipy.special.expit(mean[(centerx - buff):(centerx + buff),
+                                        (centery - buff):(centery + buff)] - point[2])
+        f2 = scipy.special.expit(minm[(centerx - buff):(centerx + buff),
+                                        (centery - buff):(centery + buff)] - point[2])
+        f3 = scipy.special.expit(maxm[(centerx - buff):(centerx + buff),
+                                        (centery - buff):(centery + buff)] - point[2])
 
-        feature = np.array([f1, f2, f3], dtype=np.uint8).reshape(40,40,3)
+        feature = np.array([f1, f2, f3], dtype=np.uint8).reshape(img_size,img_size,3)
         if training:
             if int(point[3] != 2):
                 features.append((feature, [0, 1]))
@@ -160,11 +161,11 @@ if __name__ == '__main__':
     #Read data and set parameters
     path = '/media/nejc/Prostor/Dropbox/dev/Data/'
     #path = 'e:/Dropbox/dev/Data/'
-    filename = '29'
+    filename = 'kelag_train_ground_nonground'
     las = laspy.file.File(path + filename + '.las', mode='r')
     pointsin = np.vstack((las.x, las.y, las.z, las.classification)).transpose()
 
-    buffer = 20 #Size of offsets from point of interest and buffer around area
+    
     extend = np.array([[las.header.min[0], las.header.min[1]],
                     [las.header.max[0], las.header.max[1]]])
 
@@ -174,7 +175,7 @@ if __name__ == '__main__':
     t1 = datetime.datetime.now()
   
 
-    features = create_featureset(pointsin, extend, True, buffer)
+    features = create_featureset(pointsin, extend, True)
     #Timer 2
     time_delta_1 = datetime.datetime.now() - t1
     print ('For features it took {0}'.format(time_delta_1))
