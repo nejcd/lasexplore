@@ -28,7 +28,7 @@ from scipy import stats
 import scipy.misc
 from scipy.spatial.kdtree import KDTree
 import h5py
-
+import os, glob
 
 def clip(coordinats, extend):
     """Clip point to extend
@@ -53,7 +53,7 @@ def clip(coordinats, extend):
 
     return coordinats
 
-def create_featureset(points, extend, training, img_size=32,  values=[]):
+def create_featureset(points, extend, training, sampling_rate=1, img_size=32, values=[]):
     """Create grid and caluclate features
     :param points: Array Vstack [x, y, z, classification] [m]
     :type points: float
@@ -61,17 +61,18 @@ def create_featureset(points, extend, training, img_size=32,  values=[]):
     :type extend: float
     :param training: If this is training data True else False ( training data should have label in 4th column
     :type training: bool
-    :param buffer: Buffer area
-    :type buffer: int
+    :param sampling: Values 0-1. By deafult is 1 (all data poitns), for 10% of dataset 0.1
+    :type sampling: float
+    :param img_size: Spatial size of feature area Default 32. Should be 2 to power of n
+    :type img_size: int
     :param values: Values for Feature Stats, if non is passed height is used
-    :type training: float
+    :type values: float
     """
     tree = KDTree(points[:, 0:2])
     buff = int(img_size*0.5)
 
     if values:
         points[:, 2] = values
-
 
     features = []
     n = 0
@@ -111,6 +112,16 @@ def create_featureset(points, extend, training, img_size=32,  values=[]):
     feature = np.array([f1, f2, f3])
     scipy.misc.toimage(feature, cmin=0.0, cmax=255).save('feat_out\outfile.jpg')
 
+    
+
+    if sampling_rate != 1:
+        orig_point_count = len(points)
+        points = points[downsample(len(points), sampling_rate)]
+        print ('Processing {0} procent of points ({1} of {2})'.format(sampling_rate*100,len(points),orig_point_count))
+    else:
+        print ('Processing all {0} points'.format(len(points)))
+
+
     for point in points:
 
         n += 1
@@ -145,10 +156,22 @@ def printFeatures(features):
         if n > 10:
             break
 
-
 def save_npy(featureset):
     np.save(path + filename + '.npy', featureset)
 
+def downsample(points_length, sampling_rate):
+    n = np.prod(points_length)
+    x = np.fromstring(np.random.bytes(n), np.uint8, n)
+    return (x < 255 * sampling_rate).reshape(points_length)
+
+def get_extend(las):
+    e = np.array([[las.header.min[0], las.header.min[1]],
+                 [las.header.max[0], las.header.max[1]]])
+    return e
+
+def get_list_of_las(directory):
+    os.chdir(directory)
+    return glob.glob("*.las")
 
 
 
@@ -161,7 +184,8 @@ if __name__ == '__main__':
     #Read data and set parameters
     path = '/media/nejc/Prostor/Dropbox/dev/Data/'
     #path = 'e:/Dropbox/dev/Data/'
-    filename = 'kelag_train_ground_nonground'
+    filename = '01'
+    sampling_rate = 0.1
     las = laspy.file.File(path + filename + '.las', mode='r')
     pointsin = np.vstack((las.x, las.y, las.z, las.classification)).transpose()
 
@@ -175,7 +199,7 @@ if __name__ == '__main__':
     t1 = datetime.datetime.now()
   
 
-    features = create_featureset(pointsin, extend, True)
+    features = create_featureset(pointsin, extend, True, sampling_rate=sampling_rate)
     #Timer 2
     time_delta_1 = datetime.datetime.now() - t1
     print ('For features it took {0}'.format(time_delta_1))
