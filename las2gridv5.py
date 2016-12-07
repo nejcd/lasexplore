@@ -27,7 +27,6 @@ import datetime
 from scipy import stats
 import scipy.misc
 from scipy.spatial.kdtree import KDTree
-import h5py
 import os, glob
 
 def clip(coordinats, extend):
@@ -69,7 +68,7 @@ def create_featureset(points, extend, training, sampling_rate=1, img_size=32, va
     :type values: float
     """
     tree = KDTree(points[:, 0:2])
-    buff = int(img_size*0.5)
+    buff = int(img_size/2)
 
     if values:
         points[:, 2] = values
@@ -104,15 +103,12 @@ def create_featureset(points, extend, training, sampling_rate=1, img_size=32, va
                 minm[i, j] = np.min(cell_points[:, 2])
                 maxm[i, j] = np.max(cell_points[:, 2])
 
-    # Output overall img
     f1 = 255 * scipy.special.expit(mean)
     f2 = 255 * scipy.special.expit(minm)
     f3 = 255 * scipy.special.expit(maxm)
 
-    feature = np.array([f1, f2, f3])
-    scipy.misc.toimage(feature, cmin=0.0, cmax=255).save('feat_out\outfile.jpg')
-
-    
+    f = np.array([f3, f2, f1], dtype=np.uint8)
+    scipy.misc.toimage(f, cmin=0.0, cmax=255).save('/media/nejc/Prostor/Dropbox/dev/Data/outfile.jpg')
 
     if sampling_rate != 1:
         orig_point_count = len(points)
@@ -129,14 +125,14 @@ def create_featureset(points, extend, training, sampling_rate=1, img_size=32, va
         centerx = len(gridX[gridX < point[0]])
         centery = len(gridY[gridY < point[1]])
 
-        f1 = scipy.special.expit(mean[(centerx - buff):(centerx + buff),
+        f1 = 255 * scipy.special.expit(mean[(centerx - buff):(centerx + buff),
                                         (centery - buff):(centery + buff)] - point[2])
-        f2 = scipy.special.expit(minm[(centerx - buff):(centerx + buff),
+        f2 = 255 * scipy.special.expit(minm[(centerx - buff):(centerx + buff),
                                         (centery - buff):(centery + buff)] - point[2])
-        f3 = scipy.special.expit(maxm[(centerx - buff):(centerx + buff),
+        f3 = 255 * scipy.special.expit(maxm[(centerx - buff):(centerx + buff),
                                         (centery - buff):(centery + buff)] - point[2])
 
-        feature = np.array([f1, f2, f3], dtype=np.uint8).reshape(img_size,img_size,3)
+        feature = np.array([f3, f2, f1], dtype=np.uint8).reshape(img_size,img_size,3)
         if training:
             if int(point[3] != 2):
                 features.append((feature, [0, 1]))
@@ -149,7 +145,6 @@ def create_featureset(points, extend, training, sampling_rate=1, img_size=32, va
     return features
 
 def printFeatures(features):
-
     n = 0
     for feature in features:
         scipy.misc.toimage(feature, cmin=0.0, cmax=255).save('feat_out\outfile{0}.jpg'.format(n))

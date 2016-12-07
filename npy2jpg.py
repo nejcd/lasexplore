@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """
 /***************************************************************************
- Get Lidar Slovenia data.
+ 
 
                               -------------------
         begin                : 2016-11-12
@@ -20,34 +20,23 @@
  ***************************************************************************/
 """
 
-import laspy, laspy.file
 import numpy as np
-import datetime
-import las2gridv5 as las2grid
+import os, glob
+import scipy.misc
 
-#Read data and set parameters
+#path = '/media/nejc/Prostor/AI/data/kelag_32_MSS/'
 path = '/media/nejc/Prostor/Dropbox/dev/Data/'
-#path = 'e:/Dropbox/dev/Data/'
+filename = '01'
+every = 1000
 
-files = las2grid.get_list_of_las(path)
-sampling_rate = 0.1
+features = np.load(path + filename + '.npy')
+imgs = list(features[:,0])
 
-start = datetime.datetime.now()
-files_to_go = len(files)
-print ('Stating to process {0} files.'.format(files_to_go))
-for file in files:
-    print ('Processing file: {0}'.format(file))
-    las = laspy.file.File(path + file, mode='r')
-    pointsin = np.vstack((las.x, las.y, las.z, las.classification)).transpose()
-    extend = las2grid.get_extend(las)
-    #Timer 1
 
-    features = las2grid.create_featureset(pointsin, extend, True, sampling_rate=sampling_rate, img_size=64)
-    
-    np.save(path + file + '.npy', features)
+n = 0
+for img in imgs:
+	n += 1
 
-    #Timer 1
-    time_delta = datetime.datetime.now() - start
-    print ('File {0} finnisehd in {1}. To do: {2}'.format(file, time_delta, files_to_go))
-    start = datetime.datetime.now()
-    files_to_go -= 1
+	if n % every == 0:
+		img1 = img
+		scipy.misc.toimage(img, cmin=0.0, cmax=255).save('{0}{1}_{2}.jpg'.format(path, filename, n))
