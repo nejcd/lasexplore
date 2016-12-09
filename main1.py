@@ -30,7 +30,8 @@ path = '/media/nejc/Prostor/Dropbox/dev/Data/'
 #path = 'e:/Dropbox/dev/Data/'
 
 files = las2grid.get_list_of_las(path)
-sampling_rate = 0.1
+sampling_rate = 0.01
+labels = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 
 start = datetime.datetime.now()
 files_to_go = len(files)
@@ -42,7 +43,7 @@ for file in files:
     extend = las2grid.get_extend(las)
     #Timer 1
 
-    features = las2grid.create_featureset(pointsin, extend, True, sampling_rate=sampling_rate, img_size=64)
+    features = las2grid.create_featureset(pointsin, extend, labels, sampling_rate=sampling_rate, img_size=64)
     
     np.save(path + file + '.npy', features)
 
