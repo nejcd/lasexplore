@@ -124,15 +124,16 @@ def create_featureset(points, extend, training, sampling_rate=1, img_size=32, va
         
         centerx = len(gridX[gridX < point[0]])
         centery = len(gridY[gridY < point[1]])
+        
+        feature = np.empty((img_size, img_size, 3), 'uint8')
 
-        f1 = 255 * scipy.special.expit(mean[(centerx - buff):(centerx + buff),
+        feature[..., 0] = 255 * scipy.special.expit(mean[(centerx - buff):(centerx + buff),
                                         (centery - buff):(centery + buff)] - point[2])
-        f2 = 255 * scipy.special.expit(minm[(centerx - buff):(centerx + buff),
+        feature[..., 1] = 255 * scipy.special.expit(minm[(centerx - buff):(centerx + buff),
                                         (centery - buff):(centery + buff)] - point[2])
-        f3 = 255 * scipy.special.expit(maxm[(centerx - buff):(centerx + buff),
+        feature[..., 2] = 255 * scipy.special.expit(maxm[(centerx - buff):(centerx + buff),
                                         (centery - buff):(centery + buff)] - point[2])
-
-        feature = np.array([f3, f2, f1], dtype=np.uint8).reshape(img_size,img_size,3)
+        
         if training:
             if int(point[3] != 2):
                 features.append((feature, [0, 1]))
@@ -179,7 +180,7 @@ if __name__ == '__main__':
     #Read data and set parameters
     path = '/media/nejc/Prostor/Dropbox/dev/Data/'
     #path = 'e:/Dropbox/dev/Data/'
-    filename = '01'
+    filename = 'kelag_test_ground_nonground'
     sampling_rate = 0.1
     las = laspy.file.File(path + filename + '.las', mode='r')
     pointsin = np.vstack((las.x, las.y, las.z, las.classification)).transpose()
