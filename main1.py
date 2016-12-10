@@ -23,27 +23,28 @@
 import laspy, laspy.file
 import numpy as np
 import datetime
-import las2gridv5 as las2grid
+import las2feature
 
 #Read data and set parameters
-path = '/media/nejc/Prostor/Dropbox/dev/Data/'
+path = '/media/nejc/Prostor/AI/data/test/'
 #path = 'e:/Dropbox/dev/Data/'
 
-files = las2grid.get_list_of_las(path)
-sampling_rate = 0.01
+files = las2feature.get_list_of_las(path)
+sampling_rate = 1
 labels = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+img_size = 32
 
 start = datetime.datetime.now()
 files_to_go = len(files)
-print ('Stating to process {0} files.'.format(files_to_go))
+print ('Starting to process {0} files.'.format(files_to_go))
 for file in files:
     print ('Processing file: {0}'.format(file))
     las = laspy.file.File(path + file, mode='r')
     pointsin = np.vstack((las.x, las.y, las.z, las.classification)).transpose()
-    extend = las2grid.get_extend(las)
+    extend = las2feature.get_extend(las)
     #Timer 1
 
-    features = las2grid.create_featureset(pointsin, extend, labels, sampling_rate=sampling_rate, img_size=64)
+    features = las2feature.create_featureset(pointsin, extend, labels, sampling_rate=sampling_rate, img_size=img_size)
     
     np.save(path + file + '.npy', features)
 

@@ -52,7 +52,7 @@ def clip(coordinats, extend):
 
     return coordinats
 
-def create_featureset(points, extend, labels, sampling_rate=1, img_size=32, values=[]):
+def create_featureset(points, extend, labels=[], sampling_rate=1, img_size=32, values=[]):
     """Create grid and caluclate features
     :param points: Array Vstack [x, y, z, classification] [m]
     :type points: float
@@ -134,11 +134,10 @@ def create_featureset(points, extend, labels, sampling_rate=1, img_size=32, valu
         feature[..., 2] = 255 * scipy.special.expit(maxm[(centerx - buff):(centerx + buff),
                                         (centery - buff):(centery + buff)] - point[2])
         
-        if training:
-            if int(point[3] != 2):
-                features.append((feature, labels_to_hot(point[3], len(labels))))
-            elif int(point[3] == 2):
-                features.append((feature, labels_to_hot(point[3], len(labels))))
+        if labels:
+            features.append((feature, labels_to_hot(point[3], len(labels))))
+        else:
+            features.append(feature)
 
             #scipy.misc.toimage(feature, cmin=0.0, cmax=255).save('feat_out\outfile{0}.jpg'.format(n))
 
