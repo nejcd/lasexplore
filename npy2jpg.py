@@ -25,13 +25,12 @@ import os, glob
 import scipy.misc
 
 #path = '/media/nejc/Prostor/AI/data/kelag_32_MSS/'
-path = '/media/nejc/Prostor/Dropbox/dev/Data/'
-filename = '01'
-every = 1000
+path = '/media/nejc/Prostor/AI/data/test_arranged_class_labels/class_5-6_balanced_MSS/'
+filename = 'train_k01.las'
+every = 10000
 
 features = np.load(path + filename + '.npy')
 imgs = list(features[:,0])
-
 
 n = 0
 for img in imgs:

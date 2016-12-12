@@ -100,8 +100,8 @@ def create_featureset(points, extend, labels=[], sampling_rate=1, img_size=32, v
             if cell_points.any():
 
                 mean[i, j] = np.mean(cell_points[:, 2])
-                minm[i, j] = np.min(cell_points[:, 2])
-                maxm[i, j] = np.max(cell_points[:, 2])
+                minm[i, j] = np.std(cell_points[:, 2])
+                maxm[i, j] = stats.skew(cell_points[:, 2])
 
     f1 = 255 * scipy.special.expit(mean)
     f2 = 255 * scipy.special.expit(minm)

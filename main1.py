@@ -23,15 +23,15 @@
 import laspy, laspy.file
 import numpy as np
 import datetime
-import las2feature
+import las2featureMSS as las2feature
 
 #Read data and set parameters
-path = '/media/nejc/Prostor/AI/data/test/'
+path = '/media/nejc/Prostor/AI/data/test_arranged_class_labels/'
 #path = 'e:/Dropbox/dev/Data/'
 
 files = las2feature.get_list_of_las(path)
-sampling_rate = 1
-labels = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+sampling_rate = 0.05
+labels = [5, 6]
 img_size = 32
 
 start = datetime.datetime.now()
