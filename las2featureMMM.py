@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """
 /***************************************************************************
- Get Lidar Slovenia data.
 
                               -------------------
         begin                : 2016-11-12
@@ -52,16 +51,18 @@ def clip(coordinats, extend):
 
     return coordinats
 
-def create_feature(points, grid, extend, labels=[], sampling_rate=1, img_size=32, values=[]):
+def create_feature(points, grid, extend, labels=[], sampling_rate=1, balanced=False, img_size=32, values=[]):
     """Create grid and caluclate features
     :param points: Array Vstack [x, y, z, classification] [m]
     :type points: float
-    :param extend: Array [minX minY, maxX maxY]
-    :type extend: float
-    :param training: If this is training data True else False ( training data should have label in 4th column
-    :type training: bool
-    :param sampling: Values 0-1. By deafult is 1 (all data poitns), for 10% of dataset 0.1
-    :type sampling: float
+    :param grid: 2D Array 3Chanels created by create_main_grid
+    :type grid: float
+    :param labels: If none is passed it is assumed is data for class, else it creates training dataset pass array of values to classify
+    :type labels: int
+    :param sampling_rate: Values 0-1. By deafult is 1 (all data poitns), for 10% of dataset 0.1
+    :type sampling_rate: float
+    :param balanced: If True create balanced subsample of training data balanced to smallest class.
+    :type balanced: bool
     :param img_size: Spatial size of feature area Default 32. Should be 2 to power of n
     :type img_size: int
     :param values: Values for Feature Stats, if non is passed height is used
@@ -88,16 +89,18 @@ def create_feature(points, grid, extend, labels=[], sampling_rate=1, img_size=32
     gridY = np.linspace(int(minY), int(maxY),
                         int(maxY - minY + 1))
 
+    if balanced is True:
+        points = balanced_sample(points, labels)
+
     if sampling_rate != 1:
         orig_point_count = len(points)
-        points = points[(downsample(len(points), sampling_rate) + keep_all_label(points[:,3], 5) + keep_all_label(points[:,3], 6))]
+        points = points[(downsample(len(points), sampling_rate))]
         print ('Processing {0} procent of points ({1} of {2})'.format(sampling_rate*100,len(points),orig_point_count))
     else:
         print ('Processing all {0} points'.format(len(points)))
 
 
     for point in points:
-
         n += 1
         
         centerx = len(gridX[gridX < point[0]])
@@ -117,20 +120,14 @@ def create_feature(points, grid, extend, labels=[], sampling_rate=1, img_size=32
         else:
             features.append(feature)
 
-            #scipy.misc.toimage(feature, cmin=0.0, cmax=255).save('feat_out\outfile{0}.jpg'.format(n))
-
     return features
 
-def create_main_grid(points, extend, labels=[], img_size=32, values=[]):
+def create_main_grid(points, extend, img_size=32, values=[]):
     """Create grid and caluclate features
     :param points: Array Vstack [x, y, z, classification] [m]
     :type points: float
     :param extend: Array [minX minY, maxX maxY]
     :type extend: float
-    :param training: If this is training data True else False ( training data should have label in 4th column
-    :type training: bool
-    :param sampling: Values 0-1. By deafult is 1 (all data poitns), for 10% of dataset 0.1
-    :type sampling: float
     :param img_size: Spatial size of feature area Default 32. Should be 2 to power of n
     :type img_size: int
     :param values: Values for Feature Stats, if non is passed height is used
@@ -174,9 +171,34 @@ def create_main_grid(points, extend, labels=[], img_size=32, values=[]):
 
     return [f1, f2, f3]
 
-def create_featureset(points, extend, labels=[], sampling_rate=1, img_size=32, values=[]):
+def balanced_sample(pointsin, labels):
+    subsample = []
+    all_labels = np.unique(pointsin)
+    other_labels = diff(all_labels, labels)
+    if not other_labels: labels.append(0)
+    for other_label in other_labels: pointsin[pointsin[:,3] == other_label] = 0
+
+    min_elements = None
+    for label in labels:
+        number_elements = len(pointsin[pointsin[:,3] == label])
+        if min_elements == None or min_elements > number_elements :
+            min_elements = number_elements
+
+    for label in labels:
+        elements = pointsin[pointsin[:,3] == label]
+        number_elements = len(elements)
+        if number_elements == min_elements:
+            subsample.append(elements)
+        elif number_elements > min_elements:
+            subsample.append(elements[downsample(number_elements, float(min_elements)/number_elements)])
+
+    subsample = np.concatenate(subsample)
+    np.random.shuffle(subsample)
+    return subsample
+
+def create_featureset(points, extend, labels=[], sampling_rate=1, balanced=False, img_size=32, values=[]):
     grid = create_main_grid(points, extend, img_size, values)
-    return create_feature(points, grid, extend, labels, sampling_rate, img_size, values)
+    return create_feature(points, grid, extend, labels, sampling_rate, balanced, img_size, values)
 
 def printFeatures(features):
     n = 0
@@ -212,8 +234,12 @@ def get_list_of_las(directory):
     os.chdir(directory)
     return glob.glob("*.las")
 
+def diff(first, second):
+        second = set(second)
+        return [item for item in first if item not in second]
+
 ########################################################
-#            MAIN CODE                                 #
+#                                                      #
 ########################################################
 if __name__ == '__main__':
 
@@ -226,7 +252,6 @@ if __name__ == '__main__':
     labels = [5, 6]
     las = laspy.file.File(path + filename + '.las', mode='r')
     pointsin = np.vstack((las.x, las.y, las.z, las.classification)).transpose()
-
     
     extend = np.array([[las.header.min[0], las.header.min[1]],
                     [las.header.max[0], las.header.max[1]]])
@@ -236,13 +261,11 @@ if __name__ == '__main__':
     print ('Time read and tree {0}'.format(time_delta_0))
     t1 = datetime.datetime.now()
   
-
-    features = create_featureset(pointsin, extend, labels, sampling_rate=sampling_rate)
+    features = create_featureset(pointsin, extend, labels, sampling_rate=1, balanced=True)
     #Timer 2
     time_delta_1 = datetime.datetime.now() - t1
     print ('For features it took {0}'.format(time_delta_1))
     t2 = datetime.datetime.now()
-
     
     time_delta_2 = datetime.datetime.now() - t2
     save_npy(features)
