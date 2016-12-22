@@ -23,15 +23,15 @@
 import laspy, laspy.file
 import numpy as np
 import datetime
-import las2featureMMM as las2feature
+import las2featureMSS as las2feature
 
 #Read data and set parameters
 path = '/media/nejc/Prostor/AI/data/test_arranged_class_labels/'
 #path = 'e:/Dropbox/dev/Data/'
 
 files = las2feature.get_list_of_las(path)
-sampling_rate = 0.05
-labels = [5, 6]
+sampling_rate = 1
+
 img_size = 32
 
 start = datetime.datetime.now()
@@ -39,12 +39,13 @@ files_to_go = len(files)
 print ('Starting to process {0} files.'.format(files_to_go))
 for file in files:
     print ('Processing file: {0}'.format(file))
+    labels_in = [5, 6]
     las = laspy.file.File(path + file, mode='r')
     pointsin = np.vstack((las.x, las.y, las.z, las.classification)).transpose()
     extend = las2feature.get_extend(las)
     #Timer 1
 
-    features = las2feature.create_featureset(pointsin, extend, labels,
+    features = las2feature.create_featureset(pointsin, extend, labels_in,
                                              sampling_rate=sampling_rate,
                                              balanced=True,
                                              img_size=img_size)

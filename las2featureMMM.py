@@ -51,7 +51,7 @@ def clip(coordinats, extend):
 
     return coordinats
 
-def create_feature(points, grid, extend, labels=[], sampling_rate=1, balanced=False, img_size=32, values=[]):
+def create_feature(points, grid, extend, labels_in=[], sampling_rate=1, balanced=False, img_size=32, values=[]):
     """Create grid and caluclate features
     :param points: Array Vstack [x, y, z, classification] [m]
     :type points: float
@@ -68,7 +68,7 @@ def create_feature(points, grid, extend, labels=[], sampling_rate=1, balanced=Fa
     :param values: Values for Feature Stats, if non is passed height is used
     :type values: float
     """
-    
+    labels = labels_in
     buff = int(img_size/2)
     if values: points[:, 2] = values
  
@@ -91,6 +91,7 @@ def create_feature(points, grid, extend, labels=[], sampling_rate=1, balanced=Fa
 
     if balanced is True:
         points = balanced_sample(points, labels)
+        print labels
 
     if sampling_rate != 1:
         orig_point_count = len(points)
@@ -98,7 +99,6 @@ def create_feature(points, grid, extend, labels=[], sampling_rate=1, balanced=Fa
         print ('Processing {0} procent of points ({1} of {2})'.format(sampling_rate*100,len(points),orig_point_count))
     else:
         print ('Processing all {0} points'.format(len(points)))
-
 
     for point in points:
         n += 1
@@ -138,9 +138,6 @@ def create_main_grid(points, extend, img_size=32, values=[]):
 
     if values:
         points[:, 2] = values
- 
-    features = []
-    n = 0
 
     minX = extend[0, 0] - buff
     minY = extend[0, 1] - buff
@@ -173,10 +170,11 @@ def create_main_grid(points, extend, img_size=32, values=[]):
 
 def balanced_sample(pointsin, labels):
     subsample = []
-    all_labels = np.unique(pointsin)
+    all_labels = np.unique(pointsin[:,3])
     other_labels = diff(all_labels, labels)
-    if not other_labels: labels.append(0)
-    for other_label in other_labels: pointsin[pointsin[:,3] == other_label] = 0
+    for other_label in other_labels: pointsin[pointsin[:,3] == other_label, 3] = 0
+    labels.append(0)
+    labels.sort()
 
     min_elements = None
     for label in labels:
@@ -211,10 +209,10 @@ def save_npy(featureset):
     np.save(path + filename + '.npy', featureset)
 
 def labels_to_hot(label, labels):
-    hot = np.ones(int(len(labels)+1), 'uint8')
+    hot = np.zeros(int(len(labels)), 'uint8')
     for index in range(len(labels)):
-        if label != labels[index]:
-            hot[index] = 0
+        if label == labels[index]:
+            hot[index] = 1
     return hot
 
 def downsample(points_length, sampling_rate):
@@ -238,6 +236,8 @@ def diff(first, second):
         second = set(second)
         return [item for item in first if item not in second]
 
+
+
 ########################################################
 #                                                      #
 ########################################################
@@ -245,9 +245,8 @@ if __name__ == '__main__':
 
     t0 = datetime.datetime.now()
     #Read data and set parameters
-    path = '/media/nejc/Prostor/AI/data/'
-    #path = 'e:/Dropbox/dev/Data/'
-    filename = '01'
+    path = '/media/nejc/Prostor/AI/data/test_arranged_class_labels/'
+    filename = '02'
     sampling_rate = 0.1
     labels = [5, 6]
     las = laspy.file.File(path + filename + '.las', mode='r')

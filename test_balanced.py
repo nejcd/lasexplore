@@ -46,4 +46,3 @@ np.random.shuffle(subsample)
 time_delta_0 = datetime.datetime.now() - t0
 print ('Time to balance {0} dataset: {1}'.format(len(pointsin),time_delta_0))
 print subsample
-

@@ -25,17 +25,18 @@ import os, glob
 import scipy.misc
 
 #path = '/media/nejc/Prostor/AI/data/kelag_32_MSS/'
-path = '/media/nejc/Prostor/AI/data/test_arranged_class_labels/class_5-6_balanced_MSS/'
-filename = 'train_k01.las'
-every = 10000
+path = '/media/nejc/Prostor/AI/data/test_arranged_class_labels/class_5-6_balanced_MMM/'
+filename = 'train_k02.las'
+every = 1000
 
 features = np.load(path + filename + '.npy')
 imgs = list(features[:,0])
+labels = list(features[:,1])
 
 n = 0
-for img in imgs:
+for img, label in zip(imgs, labels):
 	n += 1
 
 	if n % every == 0:
 		img1 = img
-		scipy.misc.toimage(img, cmin=0.0, cmax=255).save('{0}{1}_{2}.jpg'.format(path, filename, n))
+		scipy.misc.toimage(img, cmin=0.0, cmax=255).save('{0}{1}_{2}_class-{3}.jpg'.format(path, filename, n, label))
