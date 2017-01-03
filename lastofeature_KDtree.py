@@ -31,8 +31,8 @@ from scipy import special
 
 
 t0 = datetime.datetime.now()
-path = 'S:\Dropbox\dev\Data/'
-filename = '46_all_class'
+path = '/media/nejc/Prostor/AI/data/test_arranged_class_labels/test/'
+filename = '02'
 
 las = laspy.file.File(path + filename + '.las', mode='r')
 coords = np.vstack((las.x, las.y, las.z)).transpose()
@@ -46,6 +46,7 @@ features = []
 n = 0
 t1 = datetime.datetime.now()
 for point, value in zip(coords, values):
+    print point
     [dist, i] = tree.query(point, k=100)
     #keep = dist < 2
     [lambda_3, lambda_2, lambda_1] = scipy.linalg.eigh(np.cov(coords[i].transpose()), eigvals_only=True)

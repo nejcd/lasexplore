@@ -22,21 +22,26 @@
 
 import numpy as np
 import os, glob
-import scipy.misc
+
 
 #path = '/media/nejc/Prostor/AI/data/kelag_32_MSS/'
-path = '/media/nejc/Prostor/AI/data/test_arranged_class_labels/class_5-6_balanced_MSS/'
-filename = 'train_k02.las'
-every = 1000
+path = '/media/nejc/Prostor/AI/data/test_arranged_class_labels/class_2_64x64_balanced_MMM_kelag_all/'
 
-features = np.load(path + filename + '.npy')
-imgs = list(features[:,0])
-labels = list(features[:,1])
+os.chdir(path)
+files = glob.glob("*.npy")
 
+files_to_go = len(files)
+print ('Starting to process {0} files.'.format(files_to_go))
+
+merged = []
 n = 0
-for img, label in zip(imgs, labels):
+for filename in files:
+	print "Status: {0} %".format((n))
+	features = np.load(path + filename)
+	merged.append(features)
 	n += 1
 
-	if n % every == 0:
-		img1 = img
-		scipy.misc.toimage(img, cmin=0.0, cmax=255).save('{0}{1}_{2}_class-{3}.jpg'.format(path, filename, n, label))
+merged = np.concatenate(merged)
+np.random.shuffle(merged)
+
+np.save(path + filename + '_merged.npy', merged)

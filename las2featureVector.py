@@ -51,7 +51,7 @@ def clip(coordinats, extend):
 
     return coordinats
 
-def create_feature(points, grid, extend, labels_in=[], sampling_rate=1, balanced=False, img_size=32, values=[]):
+def create_feature(all_points, labels_in=[], sampling_rate=1, balanced=False, img_size=32, values=[]):
     """Create grid and caluclate features
     :param points: Array Vstack [x, y, z, classification] [m]
     :type points: float
@@ -68,105 +68,47 @@ def create_feature(points, grid, extend, labels_in=[], sampling_rate=1, balanced
     :param values: Values for Feature Stats, if non is passed height is used
     :type values: float
     """
+    tree = KDTree(all_points[:, 0:3])
+    
+
     labels = labels_in
-    buff = int(img_size/2)
-    if values: points[:, 2] = values
+    if values: all_points[:, 2] = values
  
     features = []
     n = 0
 
-    f1 = grid[0]
-    f2 = grid[1]
-    f3 = grid[2]
-
-    minX = extend[0, 0] - buff
-    minY = extend[0, 1] - buff
-    maxX = extend[1, 0] + buff
-    maxY = extend[1, 1] + buff
-
-    gridX = np.linspace(int(minX), int(maxX),
-                        int(maxX - minX + 1))
-    gridY = np.linspace(int(minY), int(maxY),
-                        int(maxY - minY + 1))
-
     if balanced is True:
-        points = balanced_sample(points, labels)
+        points = balanced_sample(all_points, labels)
+        print ('Processing balanced sample ({0} of {1})'.format(len(points), len(all_points)))
         print labels
+    else:
+        points = all_points
+        print ('Processing all {0} points'.format(len(points)))
 
     if sampling_rate != 1:
         orig_point_count = len(points)
         points = points[(downsample(len(points), sampling_rate))]
         print ('Processing {0} procent of points ({1} of {2})'.format(sampling_rate*100,len(points),orig_point_count))
     else:
+        points = all_points
         print ('Processing all {0} points'.format(len(points)))
 
     for point in points:
-        n += 1
-        
-        centerx = len(gridX[gridX < point[0]])
-        centery = len(gridY[gridY < point[1]])
-        
-        feature = np.empty((img_size, img_size, 3), 'uint8')
+        #print point[0:3]
+        [dist, use] = tree.query(point[0:3], k=100, eps=0, p=2)
+        neighbors = all_points[use]
+        #print neighbors
 
-        feature[..., 0] = 255 * scipy.special.expit(f1[(centerx - buff):(centerx + buff),
-                                        (centery - buff):(centery + buff)] - point[2])
-        feature[..., 1] = 255 * scipy.special.expit(f2[(centerx - buff):(centerx + buff),
-                                        (centery - buff):(centery + buff)] - point[2])
-        feature[..., 2] = 255 * scipy.special.expit(f3[(centerx - buff):(centerx + buff),
-                                        (centery - buff):(centery + buff)] - point[2])
-        
+        feature = neighbors[:,0:3] - point[0:3]
+        #print feature
+
+        n += 1
         if labels:
             features.append((feature, labels_to_hot(point[3], labels)))
         else:
             features.append(feature)
 
     return features
-
-def create_main_grid(points, extend, img_size=32, values=[]):
-    """Create grid and caluclate features
-    :param points: Array Vstack [x, y, z, classification] [m]
-    :type points: float
-    :param extend: Array [minX minY, maxX maxY]
-    :type extend: float
-    :param img_size: Spatial size of feature area Default 32. Should be 2 to power of n
-    :type img_size: int
-    :param values: Values for Feature Stats, if non is passed height is used
-    :type values: float
-    """
-    tree = KDTree(points[:, 0:2])
-    buff = int(img_size/2)
-
-    if values:
-        points[:, 2] = values
-
-    minX = extend[0, 0] - buff
-    minY = extend[0, 1] - buff
-    maxX = extend[1, 0] + buff
-    maxY = extend[1, 1] + buff
-
-    gridX = np.linspace(int(minX), int(maxX),
-                        int(maxX - minX + 1))
-    gridY = np.linspace(int(minY), int(maxY),
-                        int(maxY - minY + 1))
-
-    f1 = np.zeros((len(gridX), len(gridY)))
-    f2 = np.zeros((len(gridX), len(gridY)))
-    f3 = np.zeros((len(gridX), len(gridY)))
-
-    for x, i in zip(gridX, range(0, len(gridX))):
-        for y, j in zip(gridY, range(0, len(gridY))):
-            list = tree.query_ball_point([x, y], 1.4)
-            cell_ext = np.array([[x - 0.5, y - 0.5],
-                               [x + 0.5, y + 0.5]])
-            cell_points = clip(points[list], cell_ext)
-
-            if cell_points.any():
-
-                f1[i, j] = np.mean(cell_points[:, 2])
-                f2[i, j] = np.std(cell_points[:, 2])
-                f3[i, j] = stats.skew(cell_points[:, 2])
-
-    return [f1, f2, f3]
 
 def balanced_sample(pointsin, labels):
     subsample = []
@@ -245,22 +187,20 @@ if __name__ == '__main__':
 
     t0 = datetime.datetime.now()
     #Read data and set parameters
-    path = '/media/nejc/Prostor/AI/data/test_arranged_class_labels/'
+    path = '/media/nejc/Prostor/AI/data/test_arranged_class_labels/test/'
     filename = '02'
-    sampling_rate = 0.1
+    sampling_rate = 1
     labels = [5, 6]
     las = laspy.file.File(path + filename + '.las', mode='r')
     pointsin = np.vstack((las.x, las.y, las.z, las.classification)).transpose()
     
-    extend = np.array([[las.header.min[0], las.header.min[1]],
-                    [las.header.max[0], las.header.max[1]]])
-
     #Timer 1
     time_delta_0 = datetime.datetime.now() - t0
     print ('Time read and tree {0}'.format(time_delta_0))
     t1 = datetime.datetime.now()
   
-    features = create_featureset(pointsin, extend, labels, sampling_rate=1, balanced=True)
+    features =  create_feature(pointsin, labels, sampling_rate=1, balanced=True)
+
     #Timer 2
     time_delta_1 = datetime.datetime.now() - t1
     print ('For features it took {0}'.format(time_delta_1))

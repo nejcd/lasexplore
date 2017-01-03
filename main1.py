@@ -23,7 +23,7 @@
 import laspy, laspy.file
 import numpy as np
 import datetime
-import las2featureMSS as las2feature
+import las2featureVector as las2feature
 
 #Read data and set parameters
 path = '/media/nejc/Prostor/AI/data/test_arranged_class_labels/'
@@ -45,11 +45,13 @@ for file in files:
     extend = las2feature.get_extend(las)
     #Timer 1
 
-    features = las2feature.create_featureset(pointsin, extend, labels_in,
-                                             sampling_rate=sampling_rate,
-                                             balanced=True,
-                                             img_size=img_size)
+    #features = las2feature.create_featureset(pointsin, extend, labels_in,
+    #                                         sampling_rate=sampling_rate,
+    #                                         balanced=True,
+    #                                         img_size=img_size)
     
+    features = las2feature.create_feature(pointsin, labels_in, sampling_rate=1, balanced=True)
+
     np.save(path + file + '.npy', features)
 
     #Timer 1
